@@ -1,10 +1,11 @@
-from posts.models import Post, Group
+from posts.models import Post, Group, Follow
 from rest_framework import viewsets
 from django.core.exceptions import PermissionDenied
-from .serializers import CommentSerializer, PostSerializer, GroupSerializer
+from .serializers import CommentSerializer, PostSerializer, GroupSerializer, FollowSerializer
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions
 from rest_framework.pagination import LimitOffsetPagination
+from rest_framework import filters
 
 
 class PostViewSet(viewsets.ModelViewSet):
@@ -54,3 +55,16 @@ class CommentViewSet(viewsets.ModelViewSet):
             raise PermissionDenied('Удаление чужого контента невозможно')
         super(CommentViewSet, self).perform_destroy(instance)
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+
+
+class FollowViewSet(viewsets.ModelViewSet):
+    permission_classes = (permissions.IsAuthenticated,)
+    serializer_class = FollowSerializer
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('following__username',)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def get_queryset(self):
+        return Follow.objects.filter(user=self.request.user)
